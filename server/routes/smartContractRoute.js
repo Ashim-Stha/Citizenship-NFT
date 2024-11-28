@@ -8,7 +8,7 @@ const {
 } = require("../controllers/interactSmartContract");
 
 router.get("/connect", connect);
-router.get("/mintNft", mintNft);
+router.post("/mintNft", mintNft);
 router.get("/getTokenByCitizenshipId/:citizenshipId", getTokenByCitizenshipId);
 router.get(
   "/getTokenUriByCitizenshipId/:citizenshipId",

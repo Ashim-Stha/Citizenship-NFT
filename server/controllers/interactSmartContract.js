@@ -31,8 +31,8 @@ const mintNft = async (req, res) => {
     console.log("Transaction mined:", receipt);
     return res.json(receipt);
   } catch (error) {
-    console.log(error);
-    return res.json(e);
+    console.log(error.shortMessage);
+    return res.json(error.shortMessage);
   }
 };
 
