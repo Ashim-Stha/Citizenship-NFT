@@ -9,7 +9,7 @@ deployments
 node_modules
 coverage
 coverage.json
-
+uploads
 # don't push the environment vars!
 .env
 
