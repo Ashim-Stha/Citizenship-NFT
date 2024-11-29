@@ -9,12 +9,16 @@ const pinata = pinataSDK(pinataApiKey, pinataApiSecret);
 
 const storeImages = async () => {
   let responses = [];
-  const imagesPath = path.resolve(__dirname, "..", "./uploads");
+  const imagesPath = path.resolve("./uploads/");
   const files = fs.readdirSync(imagesPath);
   console.log("Uploading to IPFS...");
   for (const file in files) {
     console.log(`Working on ${file}`);
-    const readableStreamForFile = fs.createReadStream(`${imagesPath}/${file}`);
+    // const fullFilePath = path.join(imagesPath, file); // Full path to the file
+
+    const readableStreamForFile = fs.createReadStream(
+      `${imagesPath}/${files[file]}`
+    );
 
     try {
       const response = await pinata.pinFileToIPFS(readableStreamForFile);
