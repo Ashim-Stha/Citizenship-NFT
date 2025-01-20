@@ -15,6 +15,11 @@ const uploadFile = async (req, res) => {
   //   console.log(req.files.back[0].fieldname);
   console.log(req.files);
   const response = await handleTokenUri();
+  console.log(response);
+  console.log(response.tokenUris[0].citizenshipId);
+  console.log(response.tokenUris[0].ipfshash);
+  console.log(response.tokenUris[1].citizenshipId);
+  console.log(response.tokenUris[1].ipfshash);
   return res.json(response);
 };
 
@@ -25,15 +30,20 @@ const handleTokenUri = async () => {
     for (const index in imageUploadResponses) {
       let tokenUriMetadata = { ...metadataTemplate };
       tokenUriMetadata.name = files[index];
+      tokenUriMetadata.citizenshipId = index;
       tokenUriMetadata.image = `ipfs://${imageUploadResponses[index].IpfsHash}`;
 
       console.log(`Uploading ${tokenUriMetadata.name}`);
       const metadataUploadResponse = await storeTokenUriMetadata(
         tokenUriMetadata
       );
-      tokenUris.push(`ipfs://${metadataUploadResponse.IpfsHash}`);
+      tokenUris.push({
+        name: tokenUriMetadata.name,
+        citizenshipId: tokenUriMetadata.citizenshipId,
+        ipfshash: `ipfs://${metadataUploadResponse.IpfsHash}`,
+      });
     }
-    console.log(tokenUris);
+
     return { tokenUris };
   } catch (e) {
     console.log(e);
