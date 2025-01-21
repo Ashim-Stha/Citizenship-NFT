@@ -9,7 +9,7 @@ This project is a decentralized application (dApp) for minting and managing Citi
 
 The combination of these components allows users to mint unique Citizenship NFTs, store metadata and images on IPFS, and interact with the Ethereum blockchain through a user-friendly API. This ensures a decentralized and secure way to manage digital citizenship credentials.
 
-<!-- ## Project Structure -->
+## Project Structure
 
 ```
 .gitignore
@@ -145,31 +145,17 @@ The server will run on `http://localhost:3000`.
 
 ## Smart Contract
 
-The smart contract is located in 
+The smart contract is located in Citizenship.sol.
 
-Citizenship.sol
-
-. It uses OpenZeppelin's ERC721 implementation.
+It uses OpenZeppelin's ERC721 implementation.
 
 ## Hardhat Configuration
 
-The Hardhat configuration is located in 
-
-hardhat.config.js
-
-.
+The Hardhat configuration is located in hardhat.config.js.
 
 ## Verification
 
-To verify the smart contract on Etherscan, use the 
-
-verify
-
- utility in 
-
-verify.js
-
-.
+To verify the smart contract on Etherscan, use the verify.js.
 
 ## License
 
