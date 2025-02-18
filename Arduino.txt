@@ -1,0 +1,30 @@
+// #include <Servo.h>
+
+// Servo motor;
+// #define MOTOR_PIN 9
+
+void setup() {
+    Serial.begin(9600);
+    // motor.attach(MOTOR_PIN);
+    // motor.write(0);  // Motor OFF
+    Serial.println("Arduino Ready"); // Confirm Arduino is running
+}
+
+void loop() {
+    if (Serial.available()) {
+        String command = Serial.readStringUntil('\n');
+
+        Serial.print("Received: ");
+        Serial.println(command); // Print received data
+
+        if (command == "ACK") {
+            Serial.println("ACK received. Moving document...");
+            
+            // motor.write(90); // Move document forward
+            delay(5000);     // Run for 3 seconds
+            // motor.write(0);  // Stop motor
+            
+            Serial.println("NEXT");  // Notify Node.js that motor moved
+        }
+    }
+}
