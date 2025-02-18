@@ -14,19 +14,22 @@
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const captureButton = document.getElementById("capture");
+      const ws = new WebSocket("ws://localhost:8080"); // Connect to WebSocket server
 
+      // Start webcam
       navigator.mediaDevices
         .getUserMedia({ video: true })
         .then((stream) => (video.srcObject = stream))
         .catch((err) => console.error("Error accessing webcam:", err));
 
-      captureButton.addEventListener("click", () => {
+      // Function to capture and send an image
+      function captureAndSend() {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         canvas.toBlob((blob) => {
           const formData = new FormData();
-          formData.append("image", blob, "document.jpg");
+          formData.append("image", blob, `document_${Date.now()}.jpg`);
 
           fetch("http://localhost:3000/upload", {
             method: "POST",
@@ -36,7 +39,20 @@
             .then((data) => console.log("Server Response:", data))
             .catch((err) => console.error("Error:", err));
         }, "image/jpeg");
-      });
+      }
+
+      // Capture button click
+      captureButton.addEventListener("click", captureAndSend);
+
+      // Listen for "NEXT" from Arduino via WebSocket
+      ws.onmessage = (event) => {
+        if (event.data === "NEXT") {
+          console.log(
+            "Received NEXT signal from Arduino. Capturing next image..."
+          );
+          captureAndSend();
+        }
+      };
     </script>
   </body>
 </html>
