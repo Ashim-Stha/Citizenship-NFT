@@ -23,7 +23,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Serial Port Communication Setup (Update COM port accordingly)
-const arduinoPort = new SerialPort({ path: "COM5", baudRate: 9600 }, (err) => {
+const arduinoPort = new SerialPort({ path: "COM10", baudRate: 9600 }, (err) => {
   if (err) {
     console.error("Error opening serial port:", err.message);
   } else {

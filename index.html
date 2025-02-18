@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document Scanner</title>
+  </head>
+  <body>
+    <video id="video" width="400" height="300" autoplay></video>
+    <canvas id="canvas" width="400" height="300" style="display: none"></canvas>
+    <button id="capture">Capture & Process</button>
+
+    <script>
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const captureButton = document.getElementById("capture");
+
+      navigator.mediaDevices
+        .getUserMedia({ video: true })
+        .then((stream) => (video.srcObject = stream))
+        .catch((err) => console.error("Error accessing webcam:", err));
+
+      captureButton.addEventListener("click", () => {
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+          const formData = new FormData();
+          formData.append("image", blob, "document.jpg");
+
+          fetch("http://localhost:3000/upload", {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => response.json())
+            .then((data) => console.log("Server Response:", data))
+            .catch((err) => console.error("Error:", err));
+        }, "image/jpeg");
+      });
+    </script>
+  </body>
+</html>
