@@ -18,6 +18,7 @@ const connect = async (req, res) => {
 
 const mintNft = async (req, res) => {
   const { tokenUri, citizenshipId } = req?.body;
+  console.log(tokenUri, citizenshipId);
   if (!tokenUri && citizenshipId)
     return res.json("Please provide tokenUri and citizenshipId");
   const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545/");

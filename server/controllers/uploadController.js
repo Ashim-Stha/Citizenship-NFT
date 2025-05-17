@@ -1,7 +1,9 @@
 const {
-  storeImages,
-  storeTokenUriMetadata,
+  storeImagesToIPFS,
+  storeTokenUriMetadataToIPFS,
 } = require("../middleware/uploadToPinata");
+const { connect } = require("../routes/smartContractRoute");
+const { mintNft } = require("./interactSmartContract");
 
 const metadataTemplate = {
   citizenshipId: "",
@@ -9,24 +11,34 @@ const metadataTemplate = {
   image: "",
 };
 
-const uploadFile = async (req, res) => {
+const uploadToBlockchain = async (req, res) => {
   //   console.log(req.body);
   //   console.log(req.files.front[0].fieldname);
   //   console.log(req.files.back[0].fieldname);
   console.log(req.files);
-  const response = await handleTokenUri();
+  const response = await getTokenUriFromIPFS();
   console.log(response);
   console.log(response.tokenUris[0].citizenshipId);
   console.log(response.tokenUris[0].ipfshash);
   console.log(response.tokenUris[1].citizenshipId);
   console.log(response.tokenUris[1].ipfshash);
   return res.json(response);
+
+  connect();
+  const results = await mintNft({ body: { tokenUri, citizenshipId } });
 };
 
-const handleTokenUri = async () => {
+const getTokenUriFromIPFS = async () => {
   let tokenUris = [];
+  let imageMap = { citizenshipId: { front, back } };
   try {
-    const { responses: imageUploadResponses, files } = await storeImages();
+    const {
+      responses: imageUploadResponses,
+      files,
+      side,
+    } = await storeImagesToIPFS();
+    if (side === "front") {
+    }
     for (const index in imageUploadResponses) {
       let tokenUriMetadata = { ...metadataTemplate };
       tokenUriMetadata.name = files[index];
@@ -34,7 +46,7 @@ const handleTokenUri = async () => {
       tokenUriMetadata.image = `ipfs://${imageUploadResponses[index].IpfsHash}`;
 
       console.log(`Uploading ${tokenUriMetadata.name}`);
-      const metadataUploadResponse = await storeTokenUriMetadata(
+      const metadataUploadResponse = await storeTokenUriMetadataToIPFS(
         tokenUriMetadata
       );
       tokenUris.push({
@@ -51,4 +63,4 @@ const handleTokenUri = async () => {
   }
 };
 
-module.exports = { uploadFile };
+module.exports = { uploadToBlockchain };

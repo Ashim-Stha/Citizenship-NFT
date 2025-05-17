@@ -8,13 +8,14 @@
   <body>
     <video id="video" width="400" height="300" autoplay></video>
     <canvas id="canvas" width="400" height="300" style="display: none"></canvas>
-    <button id="capture">Capture & Process</button>
+    <br />
+    <button id="capture-front">Capture Front</button>
+    <button id="capture-back">Capture Back</button>
 
     <script>
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
-      const captureButton = document.getElementById("capture");
-      const ws = new WebSocket("ws://localhost:8080"); // Connect to WebSocket server
+      const ws = new WebSocket("ws://localhost:8080");
 
       // Start webcam
       navigator.mediaDevices
@@ -22,14 +23,15 @@
         .then((stream) => (video.srcObject = stream))
         .catch((err) => console.error("Error accessing webcam:", err));
 
-      // Function to capture and send an image
-      function captureAndSend() {
+      // Capture and send with side info ('front' or 'back')
+      function captureAndSend(side) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         canvas.toBlob((blob) => {
           const formData = new FormData();
-          formData.append("image", blob, `document_${Date.now()}.jpg`);
+          formData.append("image", blob, `document_${side}_${Date.now()}.jpg`);
+          formData.append("side", side); // Add side info in body
 
           fetch("http://localhost:3000/upload", {
             method: "POST",
@@ -41,16 +43,20 @@
         }, "image/jpeg");
       }
 
-      // Capture button click
-      captureButton.addEventListener("click", captureAndSend);
+      // Button click handlers
+      document.getElementById("capture-front").addEventListener("click", () => {
+        captureAndSend("front");
+      });
 
-      // Listen for "NEXT" from Arduino via WebSocket
+      document.getElementById("capture-back").addEventListener("click", () => {
+        captureAndSend("back");
+      });
+
+      // WebSocket "NEXT" handler (you can decide how it triggers front/back)
       ws.onmessage = (event) => {
         if (event.data === "NEXT") {
-          console.log(
-            "Received NEXT signal from Arduino. Capturing next image..."
-          );
-          captureAndSend();
+          console.log("Received NEXT signal from Arduino. Capturing front...");
+          captureAndSend("front"); // or "back", depending on your Arduino logic
         }
       };
     </script>

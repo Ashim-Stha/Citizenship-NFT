@@ -7,9 +7,15 @@ const pinataApiKey = process.env.PINATA_API_KEY;
 const pinataApiSecret = process.env.PINATA_API_SECRET;
 const pinata = pinataSDK(pinataApiKey, pinataApiSecret);
 
-const storeImages = async () => {
+const storeImagesToIPFS = async () => {
   let responses = [];
+  let side;
   const imagesPath = path.resolve("./uploads/");
+  if (imagesPath[0].includes("front")) {
+    side = "front";
+  } else {
+    side = "back";
+  }
   const files = fs.readdirSync(imagesPath);
   console.log("Uploading to IPFS...");
   for (const file in files) {
@@ -28,10 +34,10 @@ const storeImages = async () => {
     }
   }
 
-  return { responses, files };
+  return { responses, files, side };
 };
 
-const storeTokenUriMetadata = async (metadata) => {
+const storeTokenUriMetadataToIPFS = async (metadata) => {
   try {
     const response = await pinata.pinJSONToIPFS(metadata);
     return response;
@@ -41,4 +47,4 @@ const storeTokenUriMetadata = async (metadata) => {
   return null;
 };
 
-module.exports = { storeImages, storeTokenUriMetadata };
+module.exports = { storeImagesToIPFS, storeTokenUriMetadataToIPFS };
