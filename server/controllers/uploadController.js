@@ -8,7 +8,8 @@ const { mintNft } = require("./interactSmartContract");
 const metadataTemplate = {
   citizenshipId: "",
   name: "",
-  image: "",
+  frontImage: "",
+  backImage: "",
 };
 
 const uploadToBlockchain = async (req, res) => {
@@ -30,25 +31,31 @@ const uploadToBlockchain = async (req, res) => {
 
 const getTokenUriFromIPFS = async () => {
   let tokenUris = [];
-  let imageMap = { citizenshipId: { front, back } };
-  try {
-    const {
-      responses: imageUploadResponses,
-      files,
-      side,
-    } = await storeImagesToIPFS();
-    if (side === "front") {
-    }
-    for (const index in imageUploadResponses) {
-      let tokenUriMetadata = { ...metadataTemplate };
-      tokenUriMetadata.name = files[index];
-      tokenUriMetadata.citizenshipId = index;
-      tokenUriMetadata.image = `ipfs://${imageUploadResponses[index].IpfsHash}`;
 
-      console.log(`Uploading ${tokenUriMetadata.name}`);
+  try {
+    const { responses: frontResponses, files: frontFiles } =
+      await storeImagesToIPFS("front");
+    const { responses: backResponses, files: backFiles } =
+      await storeImagesToIPFS("back");
+
+    if (frontResponses.length !== backResponses.length) {
+      throw new Error("Mismatched front and back images count");
+    }
+
+    for (let i = 0; i < frontResponses.length; i++) {
+      let tokenUriMetadata = {
+        ...metadataTemplate,
+        name: frontFiles[i], // or just the base name without prefix
+        citizenshipId: i.toString(),
+        frontImage: `ipfs://${frontResponses[i].IpfsHash}`,
+        backImage: `ipfs://${backResponses[i].IpfsHash}`,
+      };
+
+      console.log(`Uploading metadata for ${tokenUriMetadata.name}`);
       const metadataUploadResponse = await storeTokenUriMetadataToIPFS(
         tokenUriMetadata
       );
+
       tokenUris.push({
         name: tokenUriMetadata.name,
         citizenshipId: tokenUriMetadata.citizenshipId,
@@ -56,6 +63,7 @@ const getTokenUriFromIPFS = async () => {
       });
     }
 
+    console.log("----------------TOKENURIS: ", tokenUris);
     return { tokenUris };
   } catch (e) {
     console.log(e);
@@ -63,4 +71,5 @@ const getTokenUriFromIPFS = async () => {
   }
 };
 
+getTokenUriFromIPFS();
 module.exports = { uploadToBlockchain };

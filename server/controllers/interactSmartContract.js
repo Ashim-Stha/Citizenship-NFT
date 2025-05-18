@@ -9,34 +9,38 @@ const connect = async (req, res) => {
     const accounts = [wallet.address];
 
     console.log(accounts);
-    return res.json(accounts);
+    // return res.json(accounts);
   } catch (e) {
     console.log(e);
-    return res.json(e);
+    // return res.json({ e });
   }
 };
 
+connect();
 const mintNft = async (req, res) => {
-  const { tokenUri, citizenshipId } = req?.body;
-  console.log(tokenUri, citizenshipId);
-  if (!tokenUri && citizenshipId)
-    return res.json("Please provide tokenUri and citizenshipId");
+  // const { tokenUri, citizenshipId } = req?.body;
+  // console.log(tokenUri, citizenshipId);
+  // if (!tokenUri && citizenshipId)
+  //   return res.json("Please provide tokenUri and citizenshipId");
   const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545/");
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   const signer = wallet.address;
   const contract = new ethers.Contract(contractAddress, abi, wallet);
   try {
-    const transactionResponse = await contract.mintNft(tokenUri, citizenshipId);
+    const transactionResponse = await contract.mintNft(
+      "nfjwefnirenfirg",
+      "jdndjsfnvbfvb"
+    );
     const receipt = await transactionResponse.wait();
 
     console.log("Transaction mined:", receipt);
-    return res.json(receipt);
+    // return res.json(receipt);
   } catch (error) {
     console.log(error.shortMessage);
-    return res.json(error.shortMessage);
+    // return res.json(error.shortMessage);
   }
 };
-
+// mintNft();
 const getTokenByCitizenshipId = async (req, res) => {
   const { citizenshipId } = req?.params;
   if (!citizenshipId) return res.json("Please provide citizenshipId");

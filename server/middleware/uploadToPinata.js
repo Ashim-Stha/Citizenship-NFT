@@ -7,24 +7,22 @@ const pinataApiKey = process.env.PINATA_API_KEY;
 const pinataApiSecret = process.env.PINATA_API_SECRET;
 const pinata = pinataSDK(pinataApiKey, pinataApiSecret);
 
-const storeImagesToIPFS = async () => {
+const storeImagesToIPFS = async (side) => {
   let responses = [];
-  let side;
   const imagesPath = path.resolve("./uploads/");
-  if (imagesPath[0].includes("front")) {
-    side = "front";
-  } else {
-    side = "back";
-  }
   const files = fs.readdirSync(imagesPath);
-  console.log("Uploading to IPFS...");
-  for (const file in files) {
-    console.log(`Working on ${file}`);
-    // const fullFilePath = path.join(imagesPath, file); // Full path to the file
+  const filtered = files
+    .filter((file) => file.startsWith(`${side}-`))
+    .sort((a, b) => {
+      const aIndex = parseInt(a.split("-")[1]);
+      const bIndex = parseInt(b.split("-")[1]);
+      return aIndex - bIndex;
+    });
 
-    const readableStreamForFile = fs.createReadStream(
-      `${imagesPath}/${files[file]}`
-    );
+  console.log(`Uploading ${side} images to IPFS...`);
+  for (const file of filtered) {
+    console.log(`Working on ${file}`);
+    const readableStreamForFile = fs.createReadStream(`${imagesPath}/${file}`);
 
     try {
       const response = await pinata.pinFileToIPFS(readableStreamForFile);
@@ -34,12 +32,18 @@ const storeImagesToIPFS = async () => {
     }
   }
 
-  return { responses, files, side };
+  console.log("-----responses: ", responses);
+  console.log(`-----files: ${files}`);
+  console.log(`-----side: ${filtered}`);
+  return { responses, files: filtered }; // keep sorted filtered names
 };
+
+//storeImagesToIPFS();
 
 const storeTokenUriMetadataToIPFS = async (metadata) => {
   try {
     const response = await pinata.pinJSONToIPFS(metadata);
+    console.log("------jsonresponse: ", response);
     return response;
   } catch (e) {
     console.log(e);

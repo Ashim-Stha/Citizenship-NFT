@@ -8,6 +8,7 @@ const { WebSocketServer } = require("ws"); // WebSocket for real-time communicat
 
 const interactSmartContractRoute = require("./routes/smartContractRoute");
 const uploadRoute = require("./routes/uploadRoute");
+const { storeImagesToIPFS } = require("./middleware/uploadToPinata");
 
 const app = express();
 const PORT = 3000;
@@ -16,7 +17,7 @@ app.use(cors());
 app.use(express.static(__dirname)); // Serve index.html
 
 // app.use("/", interactSmartContractRoute);
-// app.use("/", uploadRoute);
+// app.use("/", uploadRoute);yar
 
 // Configure multer for image storage
 const storage = multer.memoryStorage();
@@ -53,7 +54,7 @@ const readFromArduino = (arduinoPort, wss) => {
 readFromArduino(arduinoPort, wss);
 
 // Endpoint to receive image
-app.post("/upload", upload.single("image"), (req, res) => {
+app.post("/upload", upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No image uploaded" });
   }
@@ -62,7 +63,12 @@ app.post("/upload", upload.single("image"), (req, res) => {
   saveToLocal(req);
 
   // const ocr = uploadToML(image)
+
+  //front
   // const ipfs = uploadToIPFS(ocr,image)
+  const { responses, files, side } = await storeImagesToIPFS(); //front image is stored we get ipfs hash
+
+  //mint token
 
   // Send ACK signal to Arduino
   sendAckToArduino(arduinoPort);
