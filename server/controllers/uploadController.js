@@ -71,5 +71,5 @@ const getTokenUriFromIPFS = async () => {
   }
 };
 
-getTokenUriFromIPFS();
-module.exports = { uploadToBlockchain };
+//getTokenUriFromIPFS();
+module.exports = { uploadToBlockchain, getTokenUriFromIPFS };

@@ -11,8 +11,13 @@
     <br />
     <button id="capture-front">Capture Front</button>
     <button id="capture-back">Capture Back</button>
+    <br />
+    <button id="upload">upload</button>
 
     <script>
+      let frontCounter = parseInt(localStorage.getItem("frontCounter") || "1");
+      let backCounter = parseInt(localStorage.getItem("backCounter") || "1");
+
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const ws = new WebSocket("ws://localhost:8080");
@@ -30,15 +35,29 @@
 
         canvas.toBlob((blob) => {
           const formData = new FormData();
-          formData.append("image", blob, `document_${side}_${Date.now()}.jpg`);
-          formData.append("side", side); // Add side info in body
+
+          // Generate filename with counter
+          let counter = side === "front" ? frontCounter : backCounter;
+          const filename = `document_${side}_${counter}.jpg`;
+          formData.append("image", blob, filename);
+          formData.append("side", side);
 
           fetch("http://localhost:3000/upload", {
             method: "POST",
             body: formData,
           })
             .then((response) => response.json())
-            .then((data) => console.log("Server Response:", data))
+            .then((data) => {
+              console.log("Server Response:", data);
+              // Increment the correct counter
+              if (side === "front") {
+                frontCounter++;
+                localStorage.setItem("frontCounter", frontCounter);
+              } else {
+                backCounter++;
+                localStorage.setItem("backCounter", backCounter);
+              }
+            })
             .catch((err) => console.error("Error:", err));
         }, "image/jpeg");
       }
@@ -50,6 +69,19 @@
 
       document.getElementById("capture-back").addEventListener("click", () => {
         captureAndSend("back");
+      });
+
+      document.getElementById("upload").addEventListener("click", () => {
+        const formData = new FormData();
+        formData.append("type", "upload"); // This tells backend it's a signal
+
+        fetch("http://localhost:3000/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => console.log("Upload complete:", data))
+          .catch((err) => console.error("Upload complete error:", err));
       });
 
       // WebSocket "NEXT" handler (you can decide how it triggers front/back)

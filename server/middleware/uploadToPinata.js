@@ -11,11 +11,12 @@ const storeImagesToIPFS = async (side) => {
   let responses = [];
   const imagesPath = path.resolve("./uploads/");
   const files = fs.readdirSync(imagesPath);
+
   const filtered = files
-    .filter((file) => file.startsWith(`${side}-`))
+    .filter((file) => file.startsWith(`${side}_`))
     .sort((a, b) => {
-      const aIndex = parseInt(a.split("-")[1]);
-      const bIndex = parseInt(b.split("-")[1]);
+      const aIndex = parseInt(a.split("_")[1]);
+      const bIndex = parseInt(b.split("_")[1]);
       return aIndex - bIndex;
     });
 
@@ -38,12 +39,9 @@ const storeImagesToIPFS = async (side) => {
   return { responses, files: filtered }; // keep sorted filtered names
 };
 
-//storeImagesToIPFS();
-
 const storeTokenUriMetadataToIPFS = async (metadata) => {
   try {
     const response = await pinata.pinJSONToIPFS(metadata);
-    console.log("------jsonresponse: ", response);
     return response;
   } catch (e) {
     console.log(e);

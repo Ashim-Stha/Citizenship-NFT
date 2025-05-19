@@ -9,6 +9,7 @@ const { WebSocketServer } = require("ws"); // WebSocket for real-time communicat
 const interactSmartContractRoute = require("./routes/smartContractRoute");
 const uploadRoute = require("./routes/uploadRoute");
 const { storeImagesToIPFS } = require("./middleware/uploadToPinata");
+const { getTokenUriFromIPFS } = require("./controllers/uploadController");
 
 const app = express();
 const PORT = 3000;
@@ -55,6 +56,14 @@ readFromArduino(arduinoPort, wss);
 
 // Endpoint to receive image
 app.post("/upload", upload.single("image"), async (req, res) => {
+  if (req.body.type === "upload") {
+    console.log("Received 'upload' signal — both images are uploaded.");
+
+    await getTokenUriFromIPFS();
+
+    return res.json({ message: "Upload complete signal received." });
+  }
+
   if (!req.file) {
     return res.status(400).json({ error: "No image uploaded" });
   }
@@ -66,7 +75,7 @@ app.post("/upload", upload.single("image"), async (req, res) => {
 
   //front
   // const ipfs = uploadToIPFS(ocr,image)
-  const { responses, files, side } = await storeImagesToIPFS(); //front image is stored we get ipfs hash
+  // const { responses, files, side } = await storeImagesToIPFS(); //front image is stored we get ipfs hash
 
   //mint token
 

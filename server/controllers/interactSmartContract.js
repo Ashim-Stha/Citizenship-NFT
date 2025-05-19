@@ -16,7 +16,7 @@ const connect = async (req, res) => {
   }
 };
 
-connect();
+//connect();
 const mintNft = async (req, res) => {
   // const { tokenUri, citizenshipId } = req?.body;
   // console.log(tokenUri, citizenshipId);
