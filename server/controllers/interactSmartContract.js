@@ -2,44 +2,42 @@ const ethers = require("ethers");
 require("dotenv").config();
 const { abi, contractAddress } = require("../config/constants");
 
-const connect = async (req, res) => {
+// utils/ethConnect.js or similar
+const connect = async () => {
   try {
     const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545/");
     const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-    const accounts = [wallet.address];
-
-    console.log(accounts);
-    // return res.json(accounts);
+    console.log("Connected wallet:", wallet.address);
+    return wallet;
   } catch (e) {
-    console.log(e);
-    // return res.json({ e });
+    console.log("Error connecting:", e);
+    throw e;
   }
 };
+
+module.exports = { connect };
 
 //connect();
-const mintNft = async (req, res) => {
-  // const { tokenUri, citizenshipId } = req?.body;
-  // console.log(tokenUri, citizenshipId);
-  // if (!tokenUri && citizenshipId)
-  //   return res.json("Please provide tokenUri and citizenshipId");
+const mintNft = async ({ tokenUri, citizenshipId }) => {
+  if (!tokenUri || !citizenshipId) {
+    throw new Error("Please provide tokenUri and citizenshipId");
+  }
+
   const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545/");
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  const signer = wallet.address;
   const contract = new ethers.Contract(contractAddress, abi, wallet);
-  try {
-    const transactionResponse = await contract.mintNft(
-      "nfjwefnirenfirg",
-      "jdndjsfnvbfvb"
-    );
-    const receipt = await transactionResponse.wait();
 
+  try {
+    const tx = await contract.mintNft(tokenUri, citizenshipId);
+    const receipt = await tx.wait();
     console.log("Transaction mined:", receipt);
-    // return res.json(receipt);
+    return receipt;
   } catch (error) {
-    console.log(error.shortMessage);
-    // return res.json(error.shortMessage);
+    console.error("Minting failed:", error);
+    throw error;
   }
 };
+
 // mintNft();
 const getTokenByCitizenshipId = async (req, res) => {
   const { citizenshipId } = req?.params;

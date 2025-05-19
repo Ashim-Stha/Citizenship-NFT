@@ -9,7 +9,10 @@ const { WebSocketServer } = require("ws"); // WebSocket for real-time communicat
 const interactSmartContractRoute = require("./routes/smartContractRoute");
 const uploadRoute = require("./routes/uploadRoute");
 const { storeImagesToIPFS } = require("./middleware/uploadToPinata");
-const { getTokenUriFromIPFS } = require("./controllers/uploadController");
+const {
+  getTokenUriFromIPFS,
+  uploadToBlockchain,
+} = require("./controllers/uploadController");
 
 const app = express();
 const PORT = 3000;
@@ -59,9 +62,11 @@ app.post("/upload", upload.single("image"), async (req, res) => {
   if (req.body.type === "upload") {
     console.log("Received 'upload' signal — both images are uploaded.");
 
-    await getTokenUriFromIPFS();
+    // await getTokenUriFromIPFS();
+    await uploadToBlockchain();
+    return;
 
-    return res.json({ message: "Upload complete signal received." });
+    // return res.json({ message: "Upload complete signal received." });
   }
 
   if (!req.file) {

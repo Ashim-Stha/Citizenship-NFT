@@ -2,7 +2,7 @@ const {
   storeImagesToIPFS,
   storeTokenUriMetadataToIPFS,
 } = require("../middleware/uploadToPinata");
-const { connect } = require("../routes/smartContractRoute");
+const { connect } = require("./interactSmartContract");
 const { mintNft } = require("./interactSmartContract");
 
 const metadataTemplate = {
@@ -12,21 +12,37 @@ const metadataTemplate = {
   backImage: "",
 };
 
-const uploadToBlockchain = async (req, res) => {
-  //   console.log(req.body);
-  //   console.log(req.files.front[0].fieldname);
-  //   console.log(req.files.back[0].fieldname);
-  console.log(req.files);
-  const response = await getTokenUriFromIPFS();
-  console.log(response);
-  console.log(response.tokenUris[0].citizenshipId);
-  console.log(response.tokenUris[0].ipfshash);
-  console.log(response.tokenUris[1].citizenshipId);
-  console.log(response.tokenUris[1].ipfshash);
-  return res.json(response);
+const uploadToBlockchain = async () => {
+  try {
+    // Step 1: Upload images and metadata to IPFS
+    const response = await getTokenUriFromIPFS();
+    const { tokenUris } = response;
 
-  connect();
-  const results = await mintNft({ body: { tokenUri, citizenshipId } });
+    if (!tokenUris || tokenUris.length === 0) {
+      return res.status(500).json({ error: "No token URIs generated" });
+    }
+
+    // Step 2: Connect to smart contract
+    await connect();
+
+    // Step 3: Mint NFTs for each token URI
+    for (const token of tokenUris) {
+      console.log(`Minting NFT for ID ${token.citizenshipId}...`);
+      await mintNft({
+        tokenUri: token.ipfshash, // this is the correct field from tokenUris
+        citizenshipId: token.citizenshipId,
+      });
+    }
+
+    return tokenUris;
+
+    // Step 4: Return all minted tokens
+    // res.json({ message: "Minting complete", tokenUris });
+  } catch (err) {
+    console.error("Error during uploadToBlockchain:", err);
+    // res.status(500).json({ error: "Minting failed", details: err.message });
+    return err.message;
+  }
 };
 
 const getTokenUriFromIPFS = async () => {
