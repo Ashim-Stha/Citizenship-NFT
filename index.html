@@ -80,7 +80,14 @@
           body: formData,
         })
           .then((res) => res.json())
-          .then((data) => console.log("Upload complete:", data))
+          .then((data) => {
+            console.log("Upload complete:", data);
+            // ✅ Reset counters after upload
+            localStorage.setItem("frontCounter", "1");
+            localStorage.setItem("backCounter", "1");
+            frontCounter = 1;
+            backCounter = 1;
+          })
           .catch((err) => console.error("Upload complete error:", err));
       });
 
