@@ -13,6 +13,7 @@ const {
   getTokenUriFromIPFS,
   uploadToBlockchain,
 } = require("./controllers/uploadController");
+const { sendToML } = require("./sendToML");
 
 const app = express();
 const PORT = 3000;
@@ -87,14 +88,24 @@ app.post("/upload", upload.single("image"), async (req, res) => {
   // Send ACK signal to Arduino
   sendAckToArduino(arduinoPort);
 
-  setTimeout(() => {
-    console.log("Sending 'NEXT' to frontend...");
-    wss.clients.forEach((client) => {
-      if (client.readyState === 1) client.send("NEXT");
-    });
-  }, 5000);
+  const ocrResult = await sendToML();
+  console.log(ocrResult);
 
-  res.json({ message: "Image received, ACK sent to Arduino." });
+  // setTimeout(() => {
+  //   console.log("Sending 'NEXT' to frontend...");
+  //   wss.clients.forEach((client) => {
+  //     if (client.readyState === 1) client.send("NEXT");
+  //   });
+  // }, 5000);
+
+  if (ocrResult) {
+    res.json({
+      message: "Image received and processed",
+      extractedText: ocrResult, // e.g. { name: "Ashim", thau: "Kalapani" }
+    });
+  } else {
+    res.status(500).json({ error: "ML service failed to process image" });
+  }
 });
 
 // Start the server

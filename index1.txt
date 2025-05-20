@@ -1,0 +1,41 @@
+<input type="file" id="imageInput" />
+<button onclick="uploadImage()">Upload</button>
+
+<script>
+  async function uploadImage() {
+    const input = document.getElementById("imageInput");
+    const file = input.files[0];
+
+    if (!file) {
+      alert("Please select a file first.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const response = await fetch(
+        "https://4664-35-243-173-244.ngrok-free.app",
+        {
+          // adjust the URL as needed
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert("Error: " + errorData.error);
+        return;
+      }
+
+      const result = await response.json();
+      console.log("OCR Results:", result);
+      // Do something with result.results, e.g. display on the page
+    } catch (err) {
+      console.error("Request failed:", err);
+      alert("Failed to send request");
+    }
+  }
+</script>
