@@ -4,37 +4,25 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const { SerialPort, ReadlineParser } = require("serialport");
-const { WebSocketServer } = require("ws"); // WebSocket for real-time communication
+const { WebSocketServer } = require("ws");
 
-const interactSmartContractRoute = require("./routes/smartContractRoute");
-const uploadRoute = require("./routes/uploadRoute");
-const { storeImagesToIPFS } = require("./middleware/uploadToPinata");
-const {
-  getTokenUriFromIPFS,
-  uploadToBlockchain,
-} = require("./controllers/uploadController");
+const { uploadToBlockchain } = require("./controllers/uploadController");
 const { sendToML } = require("./sendToML");
 
 const app = express();
 const PORT = 3000;
 app.use(express.json());
 app.use(cors());
-app.use(express.static(__dirname)); // Serve index.html
+app.use(express.static(__dirname));
 
-// app.use("/", interactSmartContractRoute);
-// app.use("/", uploadRoute);yar
-
-// Configure multer for image storage
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// WebSocket Server
-const wss = new WebSocketServer({ port: 8080 }); // WebSocket server on port 8080
+const wss = new WebSocketServer({ port: 8080 });
 wss.on("connection", (ws) => {
   console.log("Frontend connected via WebSocket");
 });
 
-// Serial Port Communication (Update COM port accordingly)
 const arduinoPort = new SerialPort({ path: "COM10", baudRate: 9600 }, (err) => {
   if (err) {
     console.error("Error opening serial port:", err.message);
@@ -50,65 +38,58 @@ const readFromArduino = (arduinoPort, wss) => {
 
     if (data.trim() === "NEXT") {
       console.log("Sending 'NEXT' to frontend...");
-      wss.clients.forEach((client) => client.send("NEXT")); // Notify frontend
+      wss.clients.forEach((client) => client.send("NEXT"));
     }
   });
 };
-
-// Read data from Arduino
 readFromArduino(arduinoPort, wss);
 
-// Endpoint to receive image
+const ocrStore = {
+  front: [],
+  back: [],
+};
+
 app.post("/upload", upload.single("image"), async (req, res) => {
-  if (req.body.type === "upload") {
-    console.log("Received 'upload' signal — both images are uploaded.");
+  const { type, side } = req.body;
 
-    // await getTokenUriFromIPFS();
-    await uploadToBlockchain();
-    return;
+  if (type === "upload") {
+    if (
+      ocrStore.front.length !== ocrStore.back.length ||
+      ocrStore.front.length === 0
+    ) {
+      return res.status(400).json({ error: "OCR data mismatch or empty" });
+    }
 
-    // return res.json({ message: "Upload complete signal received." });
+    const mintResult = await uploadToBlockchain(ocrStore);
+    ocrStore.front = [];
+    ocrStore.back = [];
+
+    return res.json({ message: "NFTs minted", tokenUris: mintResult });
   }
 
   if (!req.file) {
     return res.status(400).json({ error: "No image uploaded" });
   }
 
-  //save to local
   saveToLocal(req);
-
-  // const ocr = uploadToML(image)
-
-  //front
-  // const ipfs = uploadToIPFS(ocr,image)
-  // const { responses, files, side } = await storeImagesToIPFS(); //front image is stored we get ipfs hash
-
-  //mint token
-
-  // Send ACK signal to Arduino
   sendAckToArduino(arduinoPort);
 
-  const ocrResult = await sendToML();
-  console.log(ocrResult);
+  const ocrResult = await sendToML(req.file.buffer);
 
-  // setTimeout(() => {
-  //   console.log("Sending 'NEXT' to frontend...");
-  //   wss.clients.forEach((client) => {
-  //     if (client.readyState === 1) client.send("NEXT");
-  //   });
-  // }, 5000);
-
-  if (ocrResult) {
-    res.json({
-      message: "Image received and processed",
-      extractedText: ocrResult, // e.g. { name: "Ashim", thau: "Kalapani" }
-    });
-  } else {
-    res.status(500).json({ error: "ML service failed to process image" });
+  if (side === "front") {
+    ocrStore.front.push(ocrResult);
+  } else if (side === "back") {
+    ocrStore.back.push(ocrResult);
   }
+
+  console.log(ocrStore);
+
+  res.json({
+    message: "Image received and processed",
+    extractedText: ocrResult,
+  });
 });
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
@@ -117,7 +98,7 @@ const saveToLocal = (req) => {
   const filePath = path.join(
     __dirname,
     "uploads",
-    `${req.body.side}- ${req.file.originalname}`
+    `${req.body.side}-${req.file.originalname}`
   );
   fs.writeFileSync(filePath, req.file.buffer);
   console.log(`Image saved at: ${filePath}`);
@@ -126,11 +107,8 @@ const saveToLocal = (req) => {
 const sendAckToArduino = (arduinoPort) => {
   if (arduinoPort.isOpen) {
     arduinoPort.write("ACK\n", (err) => {
-      if (err) {
-        console.error("Error sending ACK:", err);
-      } else {
-        console.log("ACK sent to Arduino.");
-      }
+      if (err) console.error("Error sending ACK:", err);
+      else console.log("ACK sent to Arduino.");
     });
   }
 };

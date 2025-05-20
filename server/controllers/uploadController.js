@@ -2,50 +2,44 @@ const {
   storeImagesToIPFS,
   storeTokenUriMetadataToIPFS,
 } = require("../middleware/uploadToPinata");
-const { connect } = require("./interactSmartContract");
-const { mintNft } = require("./interactSmartContract");
+const { connect, mintNft } = require("./interactSmartContract");
 
 const metadataTemplate = {
   citizenshipId: "",
   name: "",
   frontImage: "",
   backImage: "",
+  frontOcrText: "",
+  backOcrText: "",
 };
 
-const uploadToBlockchain = async () => {
+const uploadToBlockchain = async (ocrData) => {
   try {
-    // Step 1: Upload images and metadata to IPFS
-    const response = await getTokenUriFromIPFS();
+    const response = await getTokenUriFromIPFS(ocrData);
     const { tokenUris } = response;
 
     if (!tokenUris || tokenUris.length === 0) {
-      return res.status(500).json({ error: "No token URIs generated" });
+      throw new Error("No token URIs generated");
     }
 
-    // Step 2: Connect to smart contract
     await connect();
 
-    // Step 3: Mint NFTs for each token URI
     for (const token of tokenUris) {
       console.log(`Minting NFT for ID ${token.citizenshipId}...`);
       await mintNft({
-        tokenUri: token.ipfshash, // this is the correct field from tokenUris
+        tokenUri: token.ipfshash,
         citizenshipId: token.citizenshipId,
       });
     }
 
     return tokenUris;
-
-    // Step 4: Return all minted tokens
-    // res.json({ message: "Minting complete", tokenUris });
   } catch (err) {
     console.error("Error during uploadToBlockchain:", err);
-    // res.status(500).json({ error: "Minting failed", details: err.message });
-    return err.message;
+    return { error: err.message };
   }
 };
 
-const getTokenUriFromIPFS = async () => {
+const getTokenUriFromIPFS = async (ocrData) => {
   let tokenUris = [];
 
   try {
@@ -54,20 +48,25 @@ const getTokenUriFromIPFS = async () => {
     const { responses: backResponses, files: backFiles } =
       await storeImagesToIPFS("back");
 
-    if (frontResponses.length !== backResponses.length) {
-      throw new Error("Mismatched front and back images count");
+    if (
+      frontResponses.length !== backResponses.length ||
+      frontResponses.length !== ocrData.front.length ||
+      backResponses.length !== ocrData.back.length
+    ) {
+      throw new Error("Mismatched image and OCR data count");
     }
 
     for (let i = 0; i < frontResponses.length; i++) {
       let tokenUriMetadata = {
         ...metadataTemplate,
-        name: frontFiles[i], // or just the base name without prefix
+        name: frontFiles[i],
         citizenshipId: i.toString(),
         frontImage: `ipfs://${frontResponses[i].IpfsHash}`,
         backImage: `ipfs://${backResponses[i].IpfsHash}`,
+        frontOcrText: JSON.stringify(ocrData.front[i]),
+        backOcrText: JSON.stringify(ocrData.back[i]),
       };
 
-      console.log(`Uploading metadata for ${tokenUriMetadata.name}`);
       const metadataUploadResponse = await storeTokenUriMetadataToIPFS(
         tokenUriMetadata
       );
@@ -79,13 +78,11 @@ const getTokenUriFromIPFS = async () => {
       });
     }
 
-    console.log("----------------TOKENURIS: ", tokenUris);
     return { tokenUris };
   } catch (e) {
-    console.log(e);
-    return { e };
+    console.error("IPFS metadata error:", e);
+    return { error: e.message };
   }
 };
 
-//getTokenUriFromIPFS();
-module.exports = { uploadToBlockchain, getTokenUriFromIPFS };
+module.exports = { uploadToBlockchain };
