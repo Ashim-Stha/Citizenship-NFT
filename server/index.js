@@ -87,6 +87,13 @@ app.post("/upload", upload.single("image"), async (req, res) => {
   // Send ACK signal to Arduino
   sendAckToArduino(arduinoPort);
 
+  setTimeout(() => {
+    console.log("Sending 'NEXT' to frontend...");
+    wss.clients.forEach((client) => {
+      if (client.readyState === 1) client.send("NEXT");
+    });
+  }, 5000);
+
   res.json({ message: "Image received, ACK sent to Arduino." });
 });
 

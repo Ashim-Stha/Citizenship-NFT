@@ -1,14 +1,9 @@
-from ultralytics import YOLO
+import torch
 from PIL import Image
 import cv2
 
-model = YOLO('front.pt')
-
-
-# img = Image.open('front.jpg')
-img = cv2.imread("s.png")
-print(type(img))
-
+model = torch.hub.load('ultralytics/yolov5', 'custom', path='best.pt')
+img = cv2.imread("front.jpg")
 results = model(img)
-
-print(results)
+results.print()
+results.show()

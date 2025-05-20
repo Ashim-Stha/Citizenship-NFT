@@ -13,14 +13,44 @@
     <button id="capture-back">Capture Back</button>
     <br />
     <button id="upload">upload</button>
+    <button id="stop">Stop</button>
+    <button id="resume">Resume</button>
 
     <script>
       let frontCounter = parseInt(localStorage.getItem("frontCounter") || "1");
       let backCounter = parseInt(localStorage.getItem("backCounter") || "1");
+      let currentSide = localStorage.getItem("currentSide") || "front"; // Load saved side
+      let autoCaptureEnabled = true;
 
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
-      const ws = new WebSocket("ws://localhost:8080");
+
+      // Avoid duplicate WebSocket connections by checking existing one
+      let ws;
+      if (!window.wsConnected) {
+        ws = new WebSocket("ws://localhost:8080");
+        window.wsConnected = true;
+
+        ws.onopen = () => {
+          console.log("WebSocket connected");
+        };
+
+        ws.onmessage = (event) => {
+          if (event.data === "NEXT") {
+            if (!autoCaptureEnabled) {
+              console.log("Auto-capture stopped. Ignoring NEXT signal.");
+              return;
+            }
+
+            console.log(`Received NEXT signal. Capturing ${currentSide}...`);
+            captureAndSend(currentSide);
+          }
+        };
+
+        ws.onerror = (err) => {
+          console.error("WebSocket error:", err);
+        };
+      }
 
       // Start webcam
       navigator.mediaDevices
@@ -28,15 +58,12 @@
         .then((stream) => (video.srcObject = stream))
         .catch((err) => console.error("Error accessing webcam:", err));
 
-      // Capture and send with side info ('front' or 'back')
       function captureAndSend(side) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         canvas.toBlob((blob) => {
           const formData = new FormData();
-
-          // Generate filename with counter
           let counter = side === "front" ? frontCounter : backCounter;
           const filename = `document_${side}_${counter}.jpg`;
           formData.append("image", blob, filename);
@@ -49,7 +76,6 @@
             .then((response) => response.json())
             .then((data) => {
               console.log("Server Response:", data);
-              // Increment the correct counter
               if (side === "front") {
                 frontCounter++;
                 localStorage.setItem("frontCounter", frontCounter);
@@ -62,18 +88,33 @@
         }, "image/jpeg");
       }
 
-      // Button click handlers
       document.getElementById("capture-front").addEventListener("click", () => {
+        currentSide = "front";
+        localStorage.setItem("currentSide", "front");
+        autoCaptureEnabled = true;
         captureAndSend("front");
       });
 
       document.getElementById("capture-back").addEventListener("click", () => {
+        currentSide = "back";
+        localStorage.setItem("currentSide", "back");
+        autoCaptureEnabled = true;
         captureAndSend("back");
+      });
+
+      document.getElementById("stop").addEventListener("click", () => {
+        autoCaptureEnabled = false;
+        console.log("Auto-capture has been stopped by user.");
+      });
+
+      document.getElementById("resume").addEventListener("click", () => {
+        autoCaptureEnabled = true;
+        console.log("Auto-capture resumed.");
       });
 
       document.getElementById("upload").addEventListener("click", () => {
         const formData = new FormData();
-        formData.append("type", "upload"); // This tells backend it's a signal
+        formData.append("type", "upload");
 
         fetch("http://localhost:3000/upload", {
           method: "POST",
@@ -82,7 +123,6 @@
           .then((res) => res.json())
           .then((data) => {
             console.log("Upload complete:", data);
-            // ✅ Reset counters after upload
             localStorage.setItem("frontCounter", "1");
             localStorage.setItem("backCounter", "1");
             frontCounter = 1;
@@ -90,14 +130,6 @@
           })
           .catch((err) => console.error("Upload complete error:", err));
       });
-
-      // WebSocket "NEXT" handler (you can decide how it triggers front/back)
-      ws.onmessage = (event) => {
-        if (event.data === "NEXT") {
-          console.log("Received NEXT signal from Arduino. Capturing front...");
-          captureAndSend("front"); // or "back", depending on your Arduino logic
-        }
-      };
     </script>
   </body>
 </html>
