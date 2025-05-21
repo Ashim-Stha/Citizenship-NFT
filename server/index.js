@@ -9,6 +9,7 @@ const { WebSocketServer } = require("ws");
 const { uploadToBlockchain } = require("./controllers/uploadController");
 const { sendToML } = require("./sendToML");
 
+let ocrResult;
 const app = express();
 const PORT = 3000;
 app.use(express.json());
@@ -74,13 +75,20 @@ app.post("/upload", upload.single("image"), async (req, res) => {
   saveToLocal(req);
   sendAckToArduino(arduinoPort);
 
-  const ocrResult = await sendToML(req.file.buffer);
+  // const ocrResult = await sendToML(req.file.buffer);
 
   if (side === "front") {
     ocrStore.front.push(ocrResult);
   } else if (side === "back") {
     ocrStore.back.push(ocrResult);
   }
+
+  setTimeout(() => {
+    console.log("Sending 'NEXT' to frontend...");
+    wss.clients.forEach((client) => {
+      if (client.readyState === 1) client.send("NEXT");
+    });
+  }, 5000);
 
   console.log(ocrStore);
 

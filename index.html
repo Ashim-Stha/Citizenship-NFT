@@ -4,28 +4,118 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document Scanner</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        background-color: #0f172a;
+        color: #fff;
+        font-family: "Segoe UI", sans-serif;
+      }
+
+      h1 {
+        margin-bottom: 20px;
+      }
+
+      video {
+        width: 100%;
+        max-width: 800px;
+        border-radius: 8px;
+        background-color: black;
+        border: 1px solid #334155;
+      }
+
+      canvas {
+        display: none;
+      }
+
+      .controls {
+        margin-top: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .controls button {
+        padding: 12px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        color: white;
+      }
+
+      #capture-front {
+        background-color: #3b82f6;
+      }
+
+      #capture-back {
+        background-color: #475569;
+      }
+
+      #upload {
+        background-color: #22c55e;
+      }
+
+      #stop,
+      #resume {
+        background-color: transparent;
+        border: 1px solid #64748b;
+        color: #cbd5e1;
+      }
+
+      .text-area {
+        background-color: #1e293b;
+        padding: 15px;
+        border-radius: 8px;
+        white-space: pre-line;
+        min-height: 150px;
+        max-height: 300px;
+        overflow-y: auto;
+        position: relative;
+        margin-top: 30px;
+      }
+
+      .copy-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #334155;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+    </style>
   </head>
   <body>
-    <video id="video" width="800" height="800" autoplay></video>
-    <canvas id="canvas" width="800" height="800" style="display: none"></canvas>
-    <br />
-    <button id="capture-front">Capture Front</button>
-    <button id="capture-back">Capture Back</button>
-    <br />
-    <button id="upload">upload</button>
-    <button id="stop">Stop</button>
-    <button id="resume">Resume</button>
+    <h1>Document Scanner</h1>
+    <video id="video" width="600" height="600" autoplay></video>
+    <canvas id="canvas" width="600" height="600" style="display: none"></canvas>
+
+    <div class="controls">
+      <button id="capture-front">📸 Capture Front</button>
+      <button id="capture-back">📸 Capture Back</button>
+      <button id="upload">⬆️ Upload</button>
+      <button id="stop">⏹ Stop</button>
+      <button id="resume">▶️ Resume</button>
+    </div>
+
+    <div class="text-area" id="response-box">
+      <button class="copy-btn" onclick="copyText()">📋 Copy All</button>
+    </div>
 
     <script>
       let frontCounter = parseInt(localStorage.getItem("frontCounter") || "1");
       let backCounter = parseInt(localStorage.getItem("backCounter") || "1");
-      let currentSide = localStorage.getItem("currentSide") || "front"; // Load saved side
+      let currentSide = localStorage.getItem("currentSide") || "front";
       let autoCaptureEnabled = true;
 
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
+      const responseBox = document.getElementById("response-box");
 
-      // Avoid duplicate WebSocket connections by checking existing one
       let ws;
       if (!window.wsConnected) {
         ws = new WebSocket("ws://localhost:8080");
@@ -52,7 +142,6 @@
         };
       }
 
-      // Start webcam
       navigator.mediaDevices
         .getUserMedia({ video: true })
         .then((stream) => (video.srcObject = stream))
@@ -76,6 +165,7 @@
             .then((response) => response.json())
             .then((data) => {
               console.log("Server Response:", data);
+              responseBox.innerText = JSON.stringify(data, null, 2);
               if (side === "front") {
                 frontCounter++;
                 localStorage.setItem("frontCounter", frontCounter);
@@ -84,7 +174,10 @@
                 localStorage.setItem("backCounter", backCounter);
               }
             })
-            .catch((err) => console.error("Error:", err));
+            .catch((err) => {
+              console.error("Error:", err);
+              responseBox.innerText = "❌ Upload error: " + err.message;
+            });
         }, "image/jpeg");
       }
 
@@ -123,13 +216,25 @@
           .then((res) => res.json())
           .then((data) => {
             console.log("Upload complete:", data);
+            responseBox.innerText =
+              "✅ Upload complete:\n" + JSON.stringify(data, null, 2);
             localStorage.setItem("frontCounter", "1");
             localStorage.setItem("backCounter", "1");
             frontCounter = 1;
             backCounter = 1;
           })
-          .catch((err) => console.error("Upload complete error:", err));
+          .catch((err) => {
+            console.error("Upload complete error:", err);
+            responseBox.innerText = "❌ Upload error: " + err.message;
+          });
       });
+
+      function copyText() {
+        const text = responseBox.innerText;
+        navigator.clipboard.writeText(text).then(() => {
+          alert("Text copied to clipboard!");
+        });
+      }
     </script>
   </body>
 </html>

@@ -10,7 +10,7 @@ async function sendToML(imageBuffer) {
 
   try {
     const response = await axios.post(
-      "https://4664-35-243-173-244.ngrok-free.app", // your OCR endpoint
+      "https://a170-35-245-18-245.ngrok-free.app", // your OCR endpoint
       form,
       {
         headers: form.getHeaders(),
